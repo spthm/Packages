@@ -298,6 +298,50 @@ signed long l;
 short s;
 /* <- storage.type */
 
+half h;
+
+uchar2 u2;
+uchar3 u3;
+uchar4 u4;
+
+char2 c2;
+char3 c3;
+char4 c4;
+
+ushort2 us2;
+ushort3 us3;
+ushort4 us4;
+
+short2 s2;
+short3 s3;
+short4 s4;
+
+uint2 ui2;
+uint3 ui3;
+uint4 ui4;
+
+int2 i2;
+int3 i3;
+int4 i4;
+
+ulong2 ul2;
+ulong3 ul3;
+ulong4 ul4;
+
+long2 l2;
+long3 l3;
+long4 l4;
+
+ulonglong2 ull2;
+ulonglong3 ull3;
+ulonglong4 ull4;
+
+longlong2 ll2;
+longlong3 ll3;
+longlong4 ll4;
+
+dim3 dims;
+
 auto a = 2;
 /* <- storage.type */
 
@@ -311,6 +355,14 @@ float f;
 
 double d;
 /* <- storage.type */
+
+float2 f2;
+float3 f3;
+float4 f4;
+
+double2 d2;
+double3 d3;
+double4 d4;
 
 typedef int my_int;
 /* <- storage.type */
@@ -1172,6 +1224,104 @@ long double operator "" _km (long double x);
 /*          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ meta.function */
 /*                          ^^^^^^^^^^^^^^^ meta.function.parameters */
 /*          ^^^^^^^^^^^^^^^ entity.name.function */
+
+__global__ void
+__launch_bounds__(maxThreadsPerBlock, 1)
+kernel(__restrict__ int* const ptr)
+{
+    extern __shared__ SMEM[];
+
+    const size_t ws = warpSize;
+
+    int gd = gridDim.x;
+    int bd = blockDim.x;
+    int b = blockIdx.x;
+    int t = threadIdx.x;
+
+    __threadfence();
+    __threadfence_block();
+    __threadfence_system();
+
+    __syncthreads();
+    __syncthreads_count();
+    __syncthreads_and();
+    __syncthreads_or();
+
+    int r = tex1Dfetch(ptr);
+    r = __ldg(ptr);
+
+    clock();
+    clock64();
+
+    r = atomicExch(1, &ptr);
+    r = atomicAdd(1, &ptr);
+    r = atomicSub(1, &ptr);
+    r = atomicMin(1, &ptr);
+    r = atomicMax(1, &ptr);
+    r = atomicInc(1, &ptr);
+    r = atomicDec(1, &ptr);
+    r = atomicCAS(1, &ptr);
+    r = atomicAnd(1, &ptr);
+    r = atomicXor(1, &ptr);
+    r = atomicOr(1, &ptr);
+
+    r = __ballot(true);
+
+    bool p;
+    p = __any(true);
+    p = __all(true);
+
+    r = __shfl_down(r, 0);
+    r = __shfl_up(r, 0);
+    r = __shfl_xor(r, 0);
+    r = __shfl(r, 0);
+
+    assert(true);
+
+    printf("Hello world\n");
+
+    float x, y;
+    __fdividef(x, y);
+    __fsqrt_rn(x);
+    __frsqrt_rn(x);
+    __dsqrt_rn(x);
+
+    rnormf(x);
+    expm1f(x);
+    atan2f(y, x);
+    erfcxf(x);
+    erfinvf(x);
+    normcdfinvf(x);
+    tgammaf(x);
+    j0f(x);
+    fmodf(x, y);
+    roundf(x);
+    floorf(x);
+    lrintf(x);
+    llroundf(x);
+
+    return;
+}
+
+void launch_kernel(int* ptr)
+{
+    kernel<<<1, 1, (size_t)(4096)>>>(ptr);
+}
+
+__noinline__ __host__ void host_function(void)
+{
+    return;
+}
+
+__forceinline__ __device__ void device_function(void)
+{
+    return;
+}
+
+__host__ __device__ void host_device_function(void)
+{
+    return;
+}
 
 /////////////////////////////////////////////
 // Namespace
