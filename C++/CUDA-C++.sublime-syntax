@@ -1,24 +1,13 @@
 %YAML 1.2
 ---
 # http://www.sublimetext.com/docs/3/syntax.html
-name: C++
-comment: I don't think anyone uses .hp. .cp tends to be paired with .h. (I could be wrong. :) -- chris
+name: CUDA-C++
+comment: This is essentially the standard C++ syntax file with CUDA-related additions, and a conservative set of file extensions.
 file_extensions:
-  - cpp
-  - cc
-  - cp
-  - cxx
-  - c++
-  - C
-  - h
-  - hh
-  - hpp
-  - hxx
-  - h++
-  - inl
-  - ipp
-first_line_match: '-\*- C\+\+ -\*-'
-scope: source.c++
+  - cu
+  - cuh
+first_line_match: '-\*- CUDA-C\+\+ -\*-'
+scope: source.cuda-c++
 variables:
   identifier: '\b[[:alpha:]_][[:alnum:]_]*\b'
   path_lookahead: '(?:::\s*)?(?:{{identifier}}\s*::\s*)*(?:template\s+)?{{identifier}}'
@@ -29,13 +18,25 @@ variables:
   control_keywords: 'break|case|catch|continue|default|do|else|for|goto|if|_Pragma|return|switch|throw|try|while'
   memory_operators: 'new|delete'
   basic_types: 'asm|__asm__|auto|bool|_Bool|char|_Complex|double|float|_Imaginary|int|long|short|signed|unsigned|void'
+  cuda_basic_types: 'half'
+  cuda_builtin_variable: '\b(gridDim|blockIdx|blockDim|threadIdx|warpSize)\b'
+  cuda_vector_types: '\b(dim3|char[1-4]|uchar[1-4]|short[1-4]|ushort[1-4]|int[1-4]|uint[1-4]|long[1-4]|ulong[1-4]|longlong[1-4]|ulonglong[1-4]|float[1-4]|double[1-4])\b'
   before_tag: 'struct|union|enum\s+class|enum\s+struct|enum|class'
   declspec: '__declspec\(\s*\w+(?:\([^)]+\))?\s*\)'
   storage_classes: 'static|export|extern|friend|explicit|virtual|register|thread_local'
   type_qualifier: 'const|constexpr|mutable|typename|volatile'
+  cuda_type_qualifier: '\b__(device|constant|managed|shared|restrict)__\b'
   compiler_directive: 'inline|restrict|__restrict__|__restrict'
+  cuda_function_type_qualifier: '\b__(global|device|host|noinline|forceinline)__\b'
   visibility_modifiers: 'private|protected|public'
   other_keywords: 'typedef|decltype|nullptr|{{visibility_modifiers}}|static_assert|sizeof|using|typeid|alignof|alignas|namespace|template'
+  cuda_fence_functions: '\b__(threadfence_system|threadfence_block|threadfence)\b'
+  cuda_synchronization_functions: '\b__(syncthreads_count|syncthreads_and|syncthreads_or|syncthreads)\b'
+  cuda_texture_functions: '\b(texCubemapLayered|tex1Dlayered|tex2Dlayered|tex2Dgather|tex1Dfetch|texCubemap|tex1D|tex2D|tex3D)\b'
+  cuda_surface_functions: '\b(surfCubemapLayeredwrite|surfCubemapLayeredread|surf1DLayeredwrite|surf2DLayeredwrite|surf1DLayeredread|surf2DLayeredread|surfCubemapwrite|surfCubemapread|surf1Dwrite|surf2Dwrite|surf3Dwrite|surf1Dread|surf2Dread|surf3Dread)\b'
+  cuda_atomic_functions: '\b(atomicExch|atomicAdd|atomicSub|atomicMin|atomicMax|atomicInc|atomicDec|atomicCAS|atomicAnd|atomicXor|atomicOr)\b'
+  cuda_standard_functions: '\b((rsqrt|sqrt|cbrt|rcbrt|hypot|rhypot|norm3d|rnorm3d|norm4d|rnorm4d|normcdfinv|normcdf|norm|rnorm|exp2|exp10|expm1|exp|log2|log10|log1p|logb|log|sinh|sinpi|sin|cosh|cospi|cos|tanh|tan|sincospi|sincos|asinh|asin|acosh|acos|atanh|atan2|atan|pow|erfcx|erfcinv|erfc|erfinv|erf|lgamma|tgamma|fma|frexp|ldexp|scalbn|scalbln|ilogb|j0|j1|jn|y0|y1|yn|cyl_bessel_i0|cyl_bessel_i1|fmod|remainder|remquo|fdim|trunc|round|rint|nearbyint|ceil|floor|lrint|lround|llrint|llround)(f)?|(mod|modff))\b'
+  cuda_intrinsic_functions: '\b__(fdividef|sincosf|log10f|exp10f|log2f|logf|expf|powf|sinf|cosf|tanf|(fsqrt|frcp|fadd|fsub|fmul|fmaf|fdiv)_(rn|rz|ru|rd)|frsqrt_rn|(dsqrt|dadd|dsub|dmul|ddiv|drcp|fma)_(rn|rz|ru|rd))\b'
   modifiers: '{{storage_classes}}|{{type_qualifier}}|{{compiler_directive}}'
   non_angle_brackets: '(?=<<|<=)'
   generic_lookahead: '<(?:\s*(?:{{path_lookahead}}|\d+)(?:{{path_lookahead}}|&(?!&)|\*|,|\.|<.*?>|\s|\d)*)?>'
@@ -69,6 +70,30 @@ contexts:
   unique-modifiers:
     - match: \b({{modifiers}})\b
       scope: storage.modifier.c++
+    - match: '{{cuda_type_qualifier}}'
+      scope: storage.modifier.cuda-c++
+      comment: B.2 VARIABLE TYPE QUALIFIERS
+    - match: '{{cuda_function_type_qualifier}}'
+      scope: keyword.function.qualifier.cuda-c++
+      comment: B.1 FUNCTION TYPE QUALIFIERS
+    - match: '\b__launch_bounds__\b'
+      scope: keyword.function.qualifier.cuda-c++
+      comment: B.20 LAUNCH BOUNDS
+      # Below attempts to find () after __launch_bounds__, so that the kernel
+      # definition following is correctly scoped as a function. However, it is
+      # fragile, and will break if the launch bounds arguments contains a ')'
+      # (closing parentheses) character.
+      set:
+        - match: '(?=\()'
+          set:
+            - match: \(
+              scope: meta.group.c++ punctuation.section.group.begin.c++
+              set:
+                - meta_content_scope: meta.group.c++
+                - include: numbers
+                - match: \)
+                  scope: punctuation.section.group.end.c++
+                  set: global-maybe-function
 
   unique-variables:
     - match: \bthis\b
@@ -79,6 +104,9 @@ contexts:
     # common C++ instance var naming idiom -- m_member_name
     - match: '\bm_[[:alnum:]_]+\b'
       scope: variable.other.readwrite.member.c++
+    - match: '{{cuda_builtin_variable}}'
+      scope: variable.language.cuda-c++
+      comment: B.4 BUILT-IN VARIABLES
 
   unique-constants:
     - match: \bnullptr\b
@@ -109,6 +137,11 @@ contexts:
       scope: storage.type.c++
     - match: \bclass\b
       scope: storage.type.c++
+    - match: '{{cuda_basic_types}}'
+      scope: storage.type.cuda-c++
+    - match: '{{cuda_vector_types}}'
+      scope: storage.type.cuda-c++
+      comment: B.3 BUILT-IN VECTOR TYPES
 
   unique-strings:
     - match: '((?:L|u8|u|U)?R)("([^\(\)\\ ]{0,16})\()'
@@ -579,6 +612,42 @@ contexts:
         - include: statements
 
   function-call:
+    - match: '{{cuda_fence_functions}}'
+      scope: support.function.cuda-c++
+      comment: B.5 MEMORY FENCE FUNCTIONS
+    - match: '{{cuda_synchronization_functions}}'
+      scope: support.function.cuda-c++
+      comment: B.6 SYNCHRONIZATION FUNCTIONS
+    - match: '{{cuda_texture_functions}}'
+      scope: support.function.cuda-c++
+      comment: B.8 TEXTURE FUNCTIONS
+    - match: '{{cuda_surface_functions}}'
+      scope: support.function.cuda-c++
+      comment: B.9 SURFACE FUNCTIONS
+    - match: '\b__ldg\b'
+      scope: support.function.cuda-c++
+      comment: B.10 READ-ONLY DATA CACHE LOAD FUNCTION
+    - match: \b(clock|clock64)\b
+      scope: support.function.cuda-c++
+      comment: B.11 TIME FUNCTION
+    - match: '{{cuda_atomic_functions}}'
+      scope: support.function.cuda-c++
+      comment: B.12 ATOMIC FUNCTIONS
+    - match: '\b__(ballot|any|all)\b'
+      scope: support.function.cuda-c++
+      comment: B.13 WARP VOTE FUNCTIONS
+    - match: '\b__(shfl_down|shfl_xor|shfl_up|shfl)\b'
+      scope: support.function.cuda-c++
+      comment: B.14 WARP SHUFFLE FUNCTIONS
+    - match: '\b__(prof_trigger)\b'
+      scope: support.function.cuda-c++
+      comment: B.15 PROFILER COUNTER FUNCTION
+    - match: '{{cuda_standard_functions}}'
+      scope: support.function.cuda-c++
+      comment: D.1 STANDARD FUNCTIONS tables 6 and 7
+    - match: '{{cuda_intrinsic_functions}}'
+      scope: support.function.cuda-c++
+      comment: D.2 INTRINSIC FUNCTIONS tables 8, 9 and 10
     - match: (?={{path_lookahead}}\s*\()
       push:
         - meta_scope: meta.function-call.c++
@@ -726,6 +795,15 @@ contexts:
           scope: punctuation.section.brackets.end.c++
           pop: true
         - include: expressions
+
+  execution_config:
+    - match: '(<<<)'
+      scope: keyword.operator.execonf.begin.cuda-c++
+      push:
+        - match: '(>>>)'
+          scope: keyword.operator.execonf.end.cuda-c++
+          pop: true
+        - include: expressions-minus-generic-type
 
   function-trailing-return-type:
     - match: '{{non_angle_brackets}}'
