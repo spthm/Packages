@@ -4,7 +4,7 @@
 	<key>name</key>
 	<string>Indentation Rules</string>
 	<key>scope</key>
-	<string><![CDATA[(source.c | source.c++ | source.objc | source.objc++) & comment.block]]></string>
+	<string><![CDATA[(source.c | source.c++ | source.cuda-c++ | source.objc | source.objc++) & comment.block]]></string>
 	<key>settings</key>
 	<dict>
 		<key>unIndentedLinePattern</key>
